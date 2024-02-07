@@ -23,7 +23,7 @@ void IRAM_ATTR encoderChannelAISR(void *arg)
 }
 void update_ChannelA()
 {
-    bool channelAState = gpio_get_level(ENCODER_CHANNEL_A_PIN);
+    bool channelAState = !gpio_get_level(ENCODER_CHANNEL_A_PIN);
     int incr = 0;
 
     if ((lastChannelAState == false) && (channelAState == true))
@@ -44,7 +44,7 @@ void IRAM_ATTR encoderChannelBISR(void *arg)
 }
 void update_ChannelB()
 {
-    bool channelBState = gpio_get_level(ENCODER_CHANNEL_B_PIN);
+    bool channelBState = !gpio_get_level(ENCODER_CHANNEL_B_PIN);
     int incr = 0;
 
     if ((lastChannelBState == false) && (channelBState == true))
@@ -77,6 +77,9 @@ void initializeEncoder()
     // Hook ISR handler for both channels
     gpio_isr_handler_add(ENCODER_CHANNEL_A_PIN, encoderChannelAISR, (void *)ENCODER_CHANNEL_A_PIN);
     gpio_isr_handler_add(ENCODER_CHANNEL_B_PIN, encoderChannelBISR, (void *)ENCODER_CHANNEL_B_PIN);
+
+    lastChannelAState = !gpio_get_level(ENCODER_CHANNEL_A_PIN); // logic on the pins start as one for some reason
+    lastChannelBState = !gpio_get_level(ENCODER_CHANNEL_B_PIN);
 }
 
 void app_main(void)
@@ -97,7 +100,7 @@ void app_main(void)
             update_ChannelA();
             distance = ((float)encoderCount / (float)counts_per_rev) * (float)distance_per_rev; // convert from encoder counts to distance
             printf("Position: %ld   Distance: %f\n", encoderCount, distance);
-            flagChannelA = false; // Reset the flag
+            flagChannelA = false;
         }
 
         if (flagChannelB)
@@ -105,9 +108,10 @@ void app_main(void)
             update_ChannelB();
             distance = ((float)encoderCount / (float)counts_per_rev) * (float)distance_per_rev; // convert from encoder counts to distance
             printf("Position: %ld   Distance: %f\n", encoderCount, distance);
-            flagChannelB = false; // Reset the flag
+            flagChannelB = false;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(100)); // Delay to avoid high CPU usage
+        vTaskDelay(1);
+        // vTaskDelay(pdMS_TO_TICKS(100));  //too much of a delay
     }
 }
